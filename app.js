@@ -1,4 +1,4 @@
-const api = "https://YOUR-APP.onrender.com";
+const api = "https://loadkuy.onrender.com";
 
 const analyzeBtn = document.getElementById("analyzeBtn");
 const downloadBtn = document.getElementById("downloadBtn");
