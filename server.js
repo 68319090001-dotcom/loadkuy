@@ -9,63 +9,33 @@ app.use(cors());
 // ✅ serve หน้าเว็บ
 app.use(express.static(path.join(__dirname)));
 
-// 🔥 ล้าง URL (กัน ?si= / parameter พัง)
+// 🔥 ล้าง URL
 function cleanUrl(url) {
   if (!url) return "";
   return url.split("?")[0].trim();
 }
 
-// 🔍 INFO
-app.get("/info", (req, res) => {
+// 🔍 INFO (ใช้ noembed แทน yt-dlp → กัน 500)
+app.get("/info", async (req, res) => {
   let url = cleanUrl(req.query.url);
 
-  exec(
-    `yt-dlp --no-warnings --no-playlist -j "${url}"`,
-    { shell: true },
-    (err, stdout, stderr) => {
-      if (err) {
-        console.log("MAIN ERROR:", stderr);
+  try {
+    const response = await fetch(`https://noembed.com/embed?url=${url}`);
+    const data = await response.json();
 
-        // 🔥 fallback (ยังให้โหลดได้)
-        exec(
-          `yt-dlp "${url}" -g`,
-          { shell: true },
-          (err2) => {
-            if (err2) {
-              console.log("FALLBACK ERROR:", err2);
-              return res.status(500).send("yt-dlp failed");
-            }
-
-            return res.json({
-              title: "โหลดข้อมูลไม่ได้ (แต่ยังโหลดได้)",
-              thumbnail: "",
-              duration: 0,
-              uploader: "Unknown"
-            });
-          }
-        );
-
-        return;
-      }
-
-      try {
-        const data = JSON.parse(stdout);
-
-        res.json({
-          title: data.title,
-          thumbnail: data.thumbnail,
-          duration: data.duration,
-          uploader: data.uploader
-        });
-      } catch (e) {
-        console.log("PARSE ERROR:", stdout);
-        res.status(500).send("parse error");
-      }
-    }
-  );
+    res.json({
+      title: data.title || "Unknown",
+      thumbnail: data.thumbnail_url || "",
+      duration: 0,
+      uploader: data.author_name || "Unknown"
+    });
+  } catch (e) {
+    console.log("INFO ERROR:", e);
+    res.status(500).send("info failed");
+  }
 });
 
-// ⬇ DOWNLOAD
+// ⬇ DOWNLOAD (ยังใช้ yt-dlp)
 app.get("/download", (req, res) => {
   let url = cleanUrl(req.query.url);
 
