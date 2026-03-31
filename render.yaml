@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: loader-app
+    env: node
+    buildCommand: npm install && pip install yt-dlp
+    startCommand: node server.js
