@@ -1,19 +1,33 @@
 const express = require("express");
 const cors = require("cors");
 const { exec } = require("child_process");
-const path = require("path"); // ✅ เพิ่ม
+const path = require("path");
 
 const app = express();
 app.use(cors());
 
-// ✅ เพิ่มตรงนี้
+// ✅ แสดงหน้าเว็บ
 app.use(express.static(path.join(__dirname)));
 
-app.get("/info", (req, res) => {
-  const url = req.query.url;
+// 🔥 ฟังก์ชันล้าง URL (แก้ YouTube ?si= พัง)
+function cleanUrl(url) {
+  if (!url) return "";
 
-  exec(`yt-dlp -j "${url}"`, (err, stdout) => {
-    if (err) return res.status(500).send("error");
+  // ตัด parameter หลัง ?
+  url = url.split("?")[0];
+
+  return url.trim();
+}
+
+// 🔍 INFO
+app.get("/info", (req, res) => {
+  let url = cleanUrl(req.query.url);
+
+  exec(`yt-dlp -j "${url}"`, { shell: true }, (err, stdout, stderr) => {
+    if (err) {
+      console.log("INFO ERROR:", stderr);
+      return res.status(500).send(stderr);
+    }
 
     try {
       const data = JSON.parse(stdout);
@@ -24,17 +38,22 @@ app.get("/info", (req, res) => {
         duration: data.duration,
         uploader: data.uploader
       });
-    } catch {
+    } catch (e) {
+      console.log("PARSE ERROR:", stdout);
       res.status(500).send("parse error");
     }
   });
 });
 
+// ⬇ DOWNLOAD
 app.get("/download", (req, res) => {
-  const url = req.query.url;
+  let url = cleanUrl(req.query.url);
 
-  exec(`yt-dlp -f bestaudio -g "${url}"`, (err, stdout) => {
-    if (err) return res.status(500).send("error");
+  exec(`yt-dlp -f bestaudio -g "${url}"`, { shell: true }, (err, stdout, stderr) => {
+    if (err) {
+      console.log("DOWNLOAD ERROR:", stderr);
+      return res.status(500).send(stderr);
+    }
 
     res.json({
       download_url: stdout.trim()
@@ -45,5 +64,5 @@ app.get("/download", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log("🔥 Server running on port " + PORT);
 });
