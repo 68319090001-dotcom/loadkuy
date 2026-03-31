@@ -13,6 +13,25 @@ const mediaDuration = document.getElementById("mediaDuration");
 
 let currentUrl = "";
 
+// 🔥 ฟังก์ชัน retry (แก้ Render sleep)
+async function fetchWithRetry(url, options = {}, retries = 3, delay = 1500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options);
+
+      if (!res.ok) throw new Error("API error");
+
+      return await res.json();
+    } catch (err) {
+      console.log(`Retry ${i + 1}...`, err);
+      if (i === retries - 1) throw err;
+
+      await new Promise(res => setTimeout(res, delay));
+    }
+  }
+}
+
+// 🔍 วิเคราะห์
 analyzeBtn.onclick = async () => {
   const url = urlInput.value;
   if (!url) return alert("ใส่ลิงก์ก่อน");
@@ -20,8 +39,9 @@ analyzeBtn.onclick = async () => {
   analyzeBtn.classList.add("loading");
 
   try {
-    const res = await fetch(`${api}/info?url=${encodeURIComponent(url)}`);
-    const data = await res.json();
+    const data = await fetchWithRetry(
+      `${api}/info?url=${encodeURIComponent(url)}`
+    );
 
     currentUrl = url;
 
@@ -31,26 +51,30 @@ analyzeBtn.onclick = async () => {
     mediaDuration.textContent = "⏱ " + data.duration + " sec";
 
     mediaCard.classList.remove("hidden");
-  } catch {
-    alert("โหลดข้อมูลไม่ได้");
+  } catch (err) {
+    console.log("ERROR:", err);
+    alert("โหลดข้อมูลไม่ได้ (ลองอีกครั้ง)");
   }
 
   analyzeBtn.classList.remove("loading");
 };
 
+// ⬇ ดาวน์โหลด
 downloadBtn.onclick = async () => {
   if (!currentUrl) return alert("ยังไม่ได้วิเคราะห์");
 
-  downloadBtn.innerText = "กำลังโหลด...";
+  downloadBtn.innerText = "⏳ กำลังโหลด...";
 
   try {
-    const res = await fetch(`${api}/download?url=${encodeURIComponent(currentUrl)}`);
-    const data = await res.json();
+    const data = await fetchWithRetry(
+      `${api}/download?url=${encodeURIComponent(currentUrl)}`
+    );
 
     window.open(data.download_url, "_blank");
-  } catch {
+  } catch (err) {
+    console.log("DOWNLOAD ERROR:", err);
     alert("โหลดไม่ได้");
   }
 
-  downloadBtn.innerText = "ดาวน์โหลด";
+  downloadBtn.innerText = "⬇ ดาวน์โหลด";
 };
