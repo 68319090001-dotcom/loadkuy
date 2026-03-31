@@ -13,7 +13,7 @@ const mediaDuration = document.getElementById("mediaDuration");
 
 let currentUrl = "";
 
-// 🔥 ฟังก์ชัน retry (แก้ Render sleep)
+// 🔥 retry กัน Render sleep
 async function fetchWithRetry(url, options = {}, retries = 3, delay = 1500) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -26,7 +26,7 @@ async function fetchWithRetry(url, options = {}, retries = 3, delay = 1500) {
       console.log(`Retry ${i + 1}...`, err);
       if (i === retries - 1) throw err;
 
-      await new Promise(res => setTimeout(res, delay));
+      await new Promise(r => setTimeout(r, delay));
     }
   }
 }
@@ -48,12 +48,14 @@ analyzeBtn.onclick = async () => {
     mediaTitle.textContent = data.title;
     mediaThumbnail.src = data.thumbnail;
     mediaAuthor.textContent = "by " + data.uploader;
-    mediaDuration.textContent = "⏱ " + data.duration + " sec";
+    mediaDuration.textContent = data.duration
+      ? "⏱ " + data.duration + " sec"
+      : "";
 
     mediaCard.classList.remove("hidden");
   } catch (err) {
     console.log("ERROR:", err);
-    alert("โหลดข้อมูลไม่ได้ (ลองอีกครั้ง)");
+    alert("โหลดข้อมูลไม่ได้");
   }
 
   analyzeBtn.classList.remove("loading");
