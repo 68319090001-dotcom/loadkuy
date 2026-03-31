@@ -1,9 +1,13 @@
 const express = require("express");
 const cors = require("cors");
 const { exec } = require("child_process");
+const path = require("path"); // ✅ เพิ่ม
 
 const app = express();
 app.use(cors());
+
+// ✅ เพิ่มตรงนี้
+app.use(express.static(path.join(__dirname)));
 
 app.get("/info", (req, res) => {
   const url = req.query.url;
